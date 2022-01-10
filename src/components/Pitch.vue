@@ -2,14 +2,15 @@
   <canvas id="pitch-canvas" class="pitch-canvas"></canvas>
 </template>
 <script>
-import { fabric } from 'fabric';
+import { fabric } from 'fabric'
+fabric.Object.prototype.set({ borderColor: 'yellow' })
 
 export default {
   name: 'Pitch',
   data () {
     return {
       canvas: null,
-      colors: ['#DA291C','#6C1D45','#034694','#6CABDD','#c9bc00','#11210C'],
+      colors: ['#DA291C','#800000','#6C1D45','#034694','#6CABDD','#F3D459','#FFF200','#00A650','#241F20','#f5f5f5'],
       current: 1,
       draw: false
     }
@@ -17,8 +18,8 @@ export default {
 
   mounted () {
     this.canvas = new fabric.Canvas('pitch-canvas', {
-      width: 800,
-      height: 1100
+      width: window.innerHeight * 0.6935,
+      height: window.innerHeight * 0.95
     })
     fabric.Image.fromURL('./pitch.png', img => {
       this.canvas.setBackgroundImage(img, this.canvas.renderAll.bind(this.canvas), {
@@ -26,15 +27,20 @@ export default {
         scaleY: this.canvas.height / img.height
       })
     })
-    this.canvas.on('mouse:dblclick', e => {
+    this.canvas.on('mouse:dblclick', e => this.addPlayer(e))
+    window.onkeydown = this.keyCommand
+  },
+
+  methods: {
+    addPlayer (e) {
       let pointer = this.canvas.getPointer(e.e)
       let posX = pointer.x
       let posY = pointer.y
       let circ = new fabric.Circle({
-        radius: 25,
+        radius: 30,
         originX: 'center',
         originY: 'center',
-        fill: '#DA291C',
+        fill: '#DA291C'
       })
       let label = new fabric.IText('Name\n#', {
         fontSize: 12,
@@ -52,11 +58,8 @@ export default {
       label.hasControls = false
       group.hasControls = false
       this.canvas.add(group)
-    })
-    window.onkeydown = this.keyCommand
-  },
+    },
 
-  methods: {
     keyCommand (e) {
       switch (e.keyCode) {
         case 46: {
@@ -83,6 +86,12 @@ export default {
           this.ungroup()
           break
         }
+        case 73: {
+          if (this.canvas.getActiveObject() == undefined) {
+            this.$emit('close')
+          }
+          break
+        }
       }
     },
 
@@ -91,10 +100,21 @@ export default {
       activeObjects.forEach(obj => {
         let objects = obj.getObjects()
         objects.forEach(obj => {
-          if (obj.get('type') == 'circle') { obj.set('fill', this.colors[this.current]) }
+          if (obj.get('type') == 'circle') { 
+            obj.set('fill', this.colors[this.current]) 
+          } else if (obj.get('type') == 'i-text') {
+            obj.set('fill', this.fontColor) 
+          } else if (obj.get('type') == 'group') {
+            obj._objects.forEach(obj => {
+              if (obj.get('type') == 'circle') { obj.set('fill', this.colors[this.current]) }
+              if (obj.get('type') == 'i-text') { obj.set('fill', this.fontColor) }
+            })
+          } else {
+            console.log(obj.get('type'))
+          }
         })
       })
-      this.current == 5 ? this.current = 0 : this.current += 1
+      this.current == 9 ? this.current = 0 : this.current += 1
       this.canvas.renderAll()
     },
 
@@ -107,21 +127,27 @@ export default {
 
     edit () {
       let g = this.canvas.getActiveObject()
-      let items = g._objects
-      g._restoreObjectsState()
-      this.canvas.remove(g)
-      for (let i = 0; i < items.length; i++) {
-        items[i].hasControls = false
-        this.canvas.add(items[i])
+      if (g.get('type') !== 'activeSelection') {
+        let items = g._objects
+        g._restoreObjectsState()
+        this.canvas.remove(g)
+        for (let i = 0; i < items.length; i++) {
+          items[i].hasControls = false
+          this.canvas.add(items[i])
+        }
+        this.canvas.setActiveObject(items[1])
+        items[1].on('editing:exited', () => {
+          let newItems = []
+          items.forEach(i => {
+            i.clone(obj => newItems.push(obj))
+            this.canvas.remove(i)
+          })
+          let group = new fabric.Group(newItems)
+          group.hasControls = false
+          this.canvas.add(group)
+        })
+        this.canvas.renderAll()
       }
-      this.canvas.setActiveObject(items[1])
-      items[1].on('editing:exited', () => {
-        let group = new fabric.Group(items)
-        group.hasControls = false
-        this.canvas.add(group)
-      })
-      this.canvas.renderAll()
-
     },
 
     ungroup () {
@@ -146,6 +172,18 @@ export default {
       let activeObjects = this.canvas.getActiveObjects()
       activeObjects.forEach(obj => this.canvas.remove(obj))
       this.canvas.renderAll()
+    }
+  },
+
+  computed: {
+    fontColor () {
+      switch (this.current) {
+        case 5: return '#000000'
+        case 6: return '#000000'
+        case 7: return '#ffffff'
+        case 9: return '#000000'
+        default: return '#ffffff'
+      }
     }
   }
 }

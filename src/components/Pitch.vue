@@ -18,8 +18,8 @@ export default {
 
   mounted () {
     this.canvas = new fabric.Canvas('pitch-canvas', {
-      width: window.innerHeight * 0.95,
-      height: window.innerHeight * 0.6935
+      width: window.innerWidth * 0.975,
+      height: window.innerHeight * 0.975
     })
     fabric.Image.fromURL('./pitch.png', img => {
       this.canvas.setBackgroundImage(img, this.canvas.renderAll.bind(this.canvas), {
